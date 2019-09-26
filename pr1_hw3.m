@@ -4,24 +4,25 @@ clc;
 
 t = linspace(-1, 1, 10000);
 p = zeros(10000, 5);
+dt = 2/10000;
 for kk = 1:5
  p(:, kk) = t.^(kk-1);
 end 
 
 %step 1
-q1 = p(:,1)/norm(p(:,1));
+q1 = p(:,1)/(sqrt(sum(p(:,1).*p(:,1))));
 %step 2
-e2 = p(:,2) - dot(p(:,2),q1)*q1;
-q2 = e2/norm(e2);
+e2 = p(:,2) - sum(p(:,2).*q1.*dt)*q1;
+q2 = e2/(sqrt(sum(p(:,2).*p(:,2))));
 %step3
-e3 = p(:,3) - dot(p(:,3),q1)*q1 - dot(p(:,3),q2)*q2;
-q3 = e3/norm(e3);
+e3 = p(:,3) - sum(p(:,3).*q1.*dt)*q1 - sum(p(:,3).*q2.*dt)*q2;
+q3 = e3/(sqrt(sum(p(:,3).*p(:,3))));
 %step 4
-e4 = p(:,4) - dot(p(:,4),q1)*q1 - dot(p(:,4),q2)*q2 - dot(p(:,4),q3)*q3;
-q4 = e4/norm(e4);
+e4 = p(:,4) - sum(p(:,4).*q1.*dt)*q1 - sum(p(:,4).*q2.*dt)*q2 - sum(p(:,4).*q3.*dt)*q3;
+q4 = e4/(sqrt(sum(p(:,4).*p(:,4))));
 %step 5
-e5 = p(:,5) - dot(p(:,5),q1)*q1 - dot(p(:,5),q2)*q2 - dot(p(:,5),q3)*q3 - dot(p(:,5),q4)*q4;
-q5 = e5/norm(e5);
+e5 = p(:,5) - sum(p(:,5).*q1.*dt)*q1 - sum(p(:,5).*q2.*dt)*q2 - sum(p(:,5).*q3.*dt)*q3 - sum(p(:,5).*q4.*dt)*q4;
+q5 = e5/(sqrt(sum(p(:,5).*p(:,5))));
 
 plot(t,q1);
 hold on;
