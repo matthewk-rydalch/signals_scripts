@@ -2,16 +2,19 @@
 clear;
 clc;
 
-part = 'a'
+part = 'b'
 
 switch part
     case 'a'
-        [q1, q2, q3, q4, q5, t] = gram_schmidt();
-        plotter(q1, q2, q3, q4, q5, t);
+        [q1, q2, q3, q4, q5, t, dt] = gram_schmidt();
+        plotter_A(q1, q2, q3, q4, q5, t);
     case 'b'
-        [q1, q2, q3, q4, q5, t] = gram_schmidt();
+        [q1, q2, q3, q4, q5, t, dt] = gram_schmidt();
         f = exp(-t);
-        regression(q1, q2, q3, q4, q5, f);
+        f_hat = regression(q1, q2, q3, q4, q5, f', dt);
+        error = f_hat-f;
+        er_norm = sum(error.*error.*dt)
+        plotter_B(f, f_hat, t)
         
     case 'c'
         
@@ -19,7 +22,7 @@ switch part
         
 end
 
-function [q1, q2, q3, q4, q5, t] = gram_schmidt()
+function [q1, q2, q3, q4, q5, t, dt] = gram_schmidt()
     t = linspace(-1, 1, 10000);
     p = zeros(10000, 5);
     dt = 2/10000;
@@ -31,8 +34,7 @@ function [q1, q2, q3, q4, q5, t] = gram_schmidt()
     q1 = p(:,1)/(sqrt(sum(p(:,1).*p(:,1)*dt)));
     %step 2
     e2 = p(:,2) - sum(p(:,2).*q1.*dt)*q1;
-%     q2 = e2/(sqrt(sum(p(:,2).*p(:,2)*dt)));
-      q2 = e2/(sqrt(sum(e2.*e2*dt)));
+    q2 = e2/(sqrt(sum(e2.*e2*dt)));
     %step3
     e3 = p(:,3) - sum(p(:,3).*q1.*dt)*q1 - sum(p(:,3).*q2.*dt)*q2;
     q3 = e3/(sqrt(sum(e3.*e3.*dt)));
@@ -44,15 +46,25 @@ function [q1, q2, q3, q4, q5, t] = gram_schmidt()
     q5 = e5/(sqrt(sum(e5.*e5.*dt)));
 end
 
-% function[] = regression(q1, q2, q3, q4, q5, f)
-%     R = [inner(q1,q1)
-% end
-% 
-% function[x] = inner(a,b,dt)
-%     x = a.*b.*dt)
+function[f_hat] = regression(q1, q2, q3, q4, q5, f, dt)
+    R = [sum(q1.*q1.*dt), sum(q1.*q2.*dt), sum(q1.*q3.*dt), sum(q1.*q4.*dt), sum(q1.*q5.*dt); ...
+        sum(q2.*q1.*dt), sum(q2.*q2.*dt), sum(q2.*q3.*dt), sum(q2.*q4.*dt), sum(q2.*q5.*dt); ...
+        sum(q3.*q1.*dt), sum(q3.*q2.*dt), sum(q3.*q3.*dt), sum(q3.*q4.*dt), sum(q3.*q5.*dt); ...
+        sum(q4.*q1.*dt), sum(q4.*q2.*dt), sum(q4.*q3.*dt), sum(q4.*q4.*dt), sum(q4.*q5.*dt); ...
+        sum(q5.*q1.*dt), sum(q5.*q2.*dt), sum(q5.*q3.*dt), sum(q5.*q4.*dt), sum(q5.*q5.*dt)];
+
+    P = [sum(f.*q1.*dt); sum(f.*q2.*dt); sum(f.*q3.*dt); sum(f.*q4.*dt); sum(f.*q5.*dt)];
+    
+    C = P'*inv(R);
+    
+    f_hat = C*[q1'; q2'; q3'; q4'; q5'];
+end
+
+% function[x] = in(a,b,dt)
+%     x = sum(a.*b.*dt)
 % end
 
-function[] = plotter(q1, q2, q3, q4, q5, t)
+function[] = plotter_A(q1, q2, q3, q4, q5, t)
     plot(t,q1);
     hold on;
     plot(t,q2);
@@ -62,4 +74,10 @@ function[] = plotter(q1, q2, q3, q4, q5, t)
     legend('q1','q2','q3','q4','q5');
 end
 
+function[] = plotter_B(f, f_hat, t)
+    plot(t,f);
+    hold on;
+    plot(t,f_hat);
+    legend('f','estimation');
+end
 
