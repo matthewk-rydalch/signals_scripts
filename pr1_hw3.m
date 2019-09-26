@@ -31,16 +31,17 @@ function [q1, q2, q3, q4, q5, t] = gram_schmidt()
     q1 = p(:,1)/(sqrt(sum(p(:,1).*p(:,1)*dt)));
     %step 2
     e2 = p(:,2) - sum(p(:,2).*q1.*dt)*q1;
-    q2 = e2/(sqrt(sum(p(:,2).*p(:,2)*dt)));
+%     q2 = e2/(sqrt(sum(p(:,2).*p(:,2)*dt)));
+      q2 = e2/(sqrt(sum(e2.*e2*dt)));
     %step3
     e3 = p(:,3) - sum(p(:,3).*q1.*dt)*q1 - sum(p(:,3).*q2.*dt)*q2;
-    q3 = e3/(sqrt(sum(p(:,3).*p(:,3)*dt)));
+    q3 = e3/(sqrt(sum(e3.*e3.*dt)));
     %step 4
     e4 = p(:,4) - sum(p(:,4).*q1.*dt)*q1 - sum(p(:,4).*q2.*dt)*q2 - sum(p(:,4).*q3.*dt)*q3;
-    q4 = e4/(sqrt(sum(p(:,4).*p(:,4)*dt)));
+    q4 = e4/(sqrt(sum(e4.*e4.*dt)));
     %step 5
     e5 = p(:,5) - sum(p(:,5).*q1.*dt)*q1 - sum(p(:,5).*q2.*dt)*q2 - sum(p(:,5).*q3.*dt)*q3 - sum(p(:,5).*q4.*dt)*q4;
-    q5 = e5/(sqrt(sum(p(:,5).*p(:,5)*dt)));
+    q5 = e5/(sqrt(sum(e5.*e5.*dt)));
 end
 
 % function[] = regression(q1, q2, q3, q4, q5, f)
