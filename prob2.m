@@ -14,44 +14,47 @@ close all;
 load('prob2.mat');
 
 for i=1:20
-    A_comp(i,:,:) = reshape(A(:,:,i),65536,1);
+    a(:,i) = reshape(A(:,:,i),65536,1);
 end
-x_comp = reshape(x,65536,1);
+x_comp = reshape(x,1,65536);
 
-x_hat = zeros(65536,20);
+%compute cross correlation vector
+p = zeros(20,1);
 for i = 1:20
-    
-    x_hat(:,i) = sum(x_comp.*A_comp(i,:)')*A_comp(i,:);
-    xhat(:,i) = x_hat(:,i)/sum(A_comp(i,:).*A_comp(i,:));
-    e(:,i) = x_comp-x_hat(:,i);
+    p(i)=sum(x_comp*a(:,i));
+    for j = 1:20
+        R(j,i) = sum(a(:,j).*a(:,i));
+    end
 end
 
-for i=1:20
-    A(:,:,i) = reshape(A_comp(i,:,:),256,256,1);
-end
-x = reshape(x_comp, 256,256,1);
-e = reshape(e, 256,256,20);
+%find coefficients
+c = inv(R)*p;
+x_hat = c'*a';
+e = x_comp-x_hat;
+
+% for i=1:20
+%     A(:,:,i) = reshape(a(i,:,:),256,256,1);
+% end
+% x = reshape(x_comp, 256,256,1);
 
 %   There are two matrices, one containing 20
 %   basis images, and one containing the image
 %   x that we are trying to decode.
 
 %   Display the 20 basis images in matrix A
-figure;
-for kk = 1:20
-    subplot(4,5,kk);
-    imshow(A(:,:,kk),[]);
-end
+% figure;
+% for kk = 1:20
+%     subplot(4,5,kk);
+%     imshow(A(:,:,kk),[]);
+% end
 
 %   And display the image x
+% figure;
+% imshow(x,[]);
+e = e/max(e);
+error = reshape(e, 256,256);
 figure;
-imshow(x,[]);
-
-figure;
-for kk = 1:20
-    subplot(4,5,kk);
-    imshow(e(:,:,kk),[]);
-end
+imshow(error,[]);
 
 %   The image you are trying to decode is hidden
 %   in x.  In order to decode it, you need to
