@@ -1,34 +1,94 @@
-%671 project
+%671 project.  ILS using LAMBDA method
 clear;
 clc;
 
-%reduction process
-ahat = [5.45, 3.10, 2.97]'; %real value least squares estimate of a
-Q_ahat = [1.5 2.4 -0.9;
-      -1.2 3.1 -2.1;
-      0.2 1.1 -0.4];
-Z = [1 1 1;
-     1 1 2;
-     2 1 3]; %an integer unimodular matrix (abs(det(z)) = 1
+ahat = [401.6, 358.33]'; %real value least squares estimate of N
+Q_ahat = [1.6 0.75; %covariance.  Symetric square positive semi-def
+      0.75 1.9];
 
 n = size(ahat);
 n = n(1);
-p=2;
-X2 = 100; 
+p=1; %Number of solutions.  Best and second best solutions
+X2 = 100; %elipse space to search squared
 
+%z transform to get ldl factorization, make L nearly diaganol and order D in decending order 
+%this decorrelates Q/covariance of the variables.
 [Z, L, D, ahat] = reduction(Q_ahat, ahat, n);
-% Optis = mysearch(L,D,Qa,X2,ahat,n);
 % Optis = search2(L,D,Q_ahat,X2,ahat,ahat,n);
 zhat = Z'*ahat;
-Optis = msearch(L,D,zhat,p,n)
-[Lz,Uz,Pz] = lu(Z')
-y = Lz\(Pz*Optis);
-a = Uz\y
+% z = msearch(L,D,zhat,p,n) %MLAMBDA search method.
+zs = mysearch(L,D,zhat,p,n);
+z = optimal_z(zs, zhat, Z, Q_ahat);
+N = inv(Z')*z
+% [Lz,Uz,Pz] = lu(Z');
+% y = Lz\(Pz*z);
+% N = Uz\y
 
-function optis = mysearch(L,D,Qa,X2,ahat,n)
-    upper_bound = ahat(i)-sqrt(right(i))-sum
+function newer_z = mysearch(L,D,zhat,p,n)
+    X = 20; %chi for search region
+    for i=n:-1:1
+        level = i;
+        if i==n
+            z = zeros(2,1);
+            z_(n) = zhat(n);
+            [z,candidates] = get_level(D,z_,z,n,X,p,level);
+        else
+            for j=1:p
+                z_ = z(:,p)-L'*(z(:,p)-zhat);
+                [new_z,candidates] = get_level(D,z_,z(:,j),n,X,p,level);
+                new_z = z(:,j)+new_z;
+                newer_z{j} = new_z;
+            end
+        end
+        p = p*candidates;
+    end
 end
 
+function [z,p] = get_level(D,z_,z,n,X,p,i)
+    [lower, upper] = bounds(D, z_,z,n,X,i);
+    k = ceil(lower); %integer to test
+    if k > upper
+        z(i,p) = 1000;
+    else
+        m=1;
+        while k <= upper
+           z(i,m) = k;
+           m=m+1;
+           k = k+1;
+        end
+        p = m-1; %set p to be the amount of vectors found on the first level
+    end
+end
+function [lower, upper] = bounds(D, z_,z,n,X,i)
+    S = 0; %summation used in bounds
+    if i==n
+        lower = z_(n)-D(n,n)^(-1/2)*X;
+        upper = z_(n)+D(n,n)^(-1/2)*X;
+    else
+        for j=i+1:n
+            S = S+(z(j)-z_(j))^2/D(j,j);
+        end
+        lower = z_(i)-D(i,i)^(1/2)*(X^2-S)^(1/2);
+        upper = z_(i)+D(i,i)^(1/2)*(X^2-S)^(1/2);
+    end
+end
+
+function z = optimal_z(zs, zhat, Z, Q_ahat)
+    Q_zhat = Z'*Q_ahat*Z;
+    S = size(zs);
+    k = 1;
+    for i = 1:S(2)
+        len = size(zs{i});
+        for j = 1:len(2)
+            solution(k) = (zs{i}(:,j)-zhat)'*inv(Q_zhat)*(zs{i}(:,j)-zhat);
+            z_index(:,k) = zs{i}(:,j);
+            k = k+1;
+        end
+    end
+    [z_min, index] = min(solution);
+    z = z_index(:,index);
+            
+end
 function optis = search2(L,D,Qa,X2,a,ahat,n)
     dist = a-ahat;
     right(n+1) = X2; %right bound
@@ -108,18 +168,19 @@ end
 
 function [Z, L, D, ahat] = reduction(Q_ahat, ahat, n)
     [L, D] = ldl(Q_ahat); %ldl' factorization
+%     L = L'
     Z = eye(n,n);
     k = n-1;
     k1 = n-1;
     while k>0
         if k<=k1
             for i = k+1:n
-                [L,ahat,Z] = gauss(L,i,k,ahat,Z,n);
+                [L,ahat,Z] = gauss(L,i,k,ahat,Z,n); %adjusts L, ahat, and Z to have L nearly diagnol
             end
         end
         D_(k+1,k+1)=D(k,k)+L(k+1,k)^2*D(k+1,k+1);
-        if D_(k+1,k+1)<D(k+1,k+1)
-            [L,D,ahat,Z] = Permute(L,D,k,D_(k+1,k+1),ahat,Z,n);
+        if D_(k+1,k+1)<D(k+1,k+1) %determine if D_ needs to be permutated
+            [L,D,ahat,Z] = Permute(L,D,k,D_(k+1,k+1),ahat,Z,n); %swap rows of D to get them in decending order.  Adjust L, ahat, and Z to match
             k1 = k;
             k = n-1;
         else
@@ -130,7 +191,7 @@ end
 
 %used to make off diagnols of L_ small
 function [L, ahat, Z] = gauss(L, i, j, ahat, Z, n)
-    mu = L(i,j);
+    mu = round(L(i,j));
     if mu ~= 0
         L(i:n,j) = L(i:n,j)-mu*L(i:n,i);
         Z(1:n,j)=Z(1:n,j)-mu*Z(1:n,i);
@@ -165,7 +226,7 @@ end
 function Optis = msearch(L,D,zhat,p,n)
     maxDist = inf; %current X^2, starts around inf
     k = n;
-    dist(k) = 0;
+    dist(k) = 0; 
     endSearch = false;
     count = 0; %count: the number of candidates
     S = zeros(n,n); %will be used for computing z_
