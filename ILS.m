@@ -1,25 +1,27 @@
 %671 project.  ILS using LAMBDA method
-clear;
-clc;
 
-Nhat = [401.6, 358.33]'; %real value least squares estimate of N.  Arbitraryily selected for demonstration
-Q_Nhat = [1.6 0.75; %covariance.  Symetric square positive semi-def.  Arbitrarily selected for demonstration
-      0.75 1.9];
+function N = ILS(Nhat, Q_Nhat, X)
+    n = size(Nhat);
+    n = n(1);
+    p=1; %Number of solutions on the previous level.  Initialize as 1.
+    
+    %reduction is a z transform to get ldl factorization, make L nearly diaganol and order D in decending order 
+    %this decorrelates Q/covariance of the variables.
+    [Z, L, D, Nhat, swapped] = reduction(Q_Nhat, Nhat, n);
+    zhat = Z'*Nhat;
+    zs = search(L,D,zhat,p,X,n); %search for valid integers.  Algorithm is only set for 2 levels
+    z = optimal_z(zs, zhat, Z, Q_Nhat); %select the optimal integer z
+    N = inv(Z')*z; %Fixed ambiguity for ILS
+%     N
+%     swapped
+%     if swapped == 1
+%         N_up = N(2);
+%         N_down = N(1);
+%         N = [N_up, N_down]';
+%     end
+end
 
-n = size(Nhat);
-n = n(1);
-p=1; %Number of solutions.  Best and second best solutions
-X = 20; %chi for search region
-
-%reduction is a z transform to get ldl factorization, make L nearly diaganol and order D in decending order 
-%this decorrelates Q/covariance of the variables.
-[Z, L, D, Nhat] = reduction(Q_Nhat, Nhat, n);
-zhat = Z'*Nhat;
-zs = search(L,D,zhat,p,X,n); %search for valid integers.  Algorithm is only set for 2 levels
-z = optimal_z(zs, zhat, Z, Q_Nhat); %select the optimal integer z
-N = inv(Z')*z %Fixed ambiguity for ILS
-
-function [Z, L, D, Nhat] = reduction(Q_Nhat, Nhat, n)
+function [Z, L, D, Nhat, swapped] = reduction(Q_Nhat, Nhat, n)
     [L, D] = ldl(Q_Nhat); %ldl' factorization
     Z = eye(n,n);
     k = n-1;
@@ -35,8 +37,10 @@ function [Z, L, D, Nhat] = reduction(Q_Nhat, Nhat, n)
             [L,D,Nhat,Z] = Permute(L,D,k,D_(k+1,k+1),Nhat,Z,n); %swap rows of D to get them in decending order.  Adjust L, Nhat, and Z to match
             k1 = k;
             k = n-1;
+            swapped = 1; %to tell if the result needs to be swapped back
         else
             k = k-1;
+            swapped = 0;
         end
     end
 end
